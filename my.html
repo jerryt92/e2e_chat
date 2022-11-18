@@ -43,13 +43,11 @@
         </div>
         <button onclick="save()">保存配置</button>
         <button onclick="cleanAll()">清除配置</button>
-        <br/>
+        <p><a href="./"><span style="font-size: x-large">前往聊天页</span></a></p>
         <hr/>
-        <p><button onclick="exportToFile()">导出配置文件（建议加密后再进行此操作）</button></p>
+        <p><button onclick="exportToFile()">备份我的配置（建议加密后再进行此操作）</button></p>
         <p><input id="file" type="file" onchange="importToFile()" style="display:none"/></p>
-        <p><button onclick="importToFile()">导入配置文件</button></p>
-        <hr/>
-        <a href="./"><span>返回端到端聊天工具主页</span></a>
+        <p><button onclick="importToFile()">导入备份文件</button></p>
     </div>
 </div>
 <script src="./js/encrypt_lib/jsencrypt.min.js"></script>

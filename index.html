@@ -112,7 +112,7 @@
                 document.getElementById('main-div').style.display = 'block';
                 private_key = localStorage_private_key;
                 public_key = localStorage_public_key;
-                document.getElementById('my-hash').innerHTML = ''+CryptoJS.SHA256(public_key.replace(/\n*/g, ""));
+                document.getElementById('my-hash').innerHTML = ''+CryptoJS.SHA1(public_key.replace(/\n*/g, ""));
             } else {
                 alert("本地数据遭到篡改，已自动清除！")
                 window.localStorage.clear();
@@ -149,7 +149,7 @@
     function getLinkmanHash() {
         var lpk = document.getElementById('linkman_pk').value.replace(/\n*/g, "");
         if (lpk) {
-            document.getElementById('linkman-hash').innerHTML = ''+CryptoJS.SHA256(lpk)
+            document.getElementById('linkman-hash').innerHTML = ''+CryptoJS.SHA1(lpk)
             document.getElementById('linkman-hash').style.color = 'dodgerblue'
         } else {
             document.getElementById('linkman-hash').innerHTML = '空'
@@ -173,7 +173,7 @@
                 document.getElementById('main-div').style.display = 'block';
                 private_key = localStorage_private_key;
                 public_key = localStorage_public_key;
-                document.getElementById('my-hash').innerHTML = ''+CryptoJS.SHA256(public_key.replace(/\n*/g, ""));
+                document.getElementById('my-hash').innerHTML = ''+CryptoJS.SHA1(public_key.replace(/\n*/g, ""));
             } else {
                 alert("本地数据遭到篡改，已自动清除！")
                 window.localStorage.clear();
