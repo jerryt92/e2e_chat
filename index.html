@@ -197,7 +197,7 @@
                 document.getElementById("encrypted").innerHTML = '加密失败，请检查公钥是否正确';
             } else {
                 let encrypted = aesEncryptBase64(aesKey, message);
-                document.getElementById("encrypted").innerHTML = encrypted + encKey + '\n「-----# '+'这是发送给['+CryptoJS.SHA256(document.getElementById('linkman_pk').value.replace(/\n*/g, ""))+']的消息 #-----」';
+                document.getElementById("encrypted").innerHTML = encrypted + encKey + '\n「-----# '+'这是发送给['+CryptoJS.SHA1(document.getElementById('linkman_pk').value.replace(/\n*/g, ""))+']的消息 #-----」';
             }
         } else {
             document.getElementById("encrypted").innerHTML = "请输入内容";
