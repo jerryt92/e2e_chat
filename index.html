@@ -197,29 +197,34 @@
                 document.getElementById("encrypted").innerHTML = '加密失败，请检查公钥是否正确';
             } else {
                 let encrypted = aesEncryptBase64(aesKey, message);
-                document.getElementById("encrypted").innerHTML = encrypted + encKey + '\n「-----# '+'这是发送给['+CryptoJS.SHA1(document.getElementById('linkman_pk').value.replace(/\n*/g, ""))+']的消息 #-----」';
+                console.log(encKey)
+                console.log(encrypted)
+                document.getElementById("encrypted").innerHTML = encrypted
+                    + '\n[-----# ' + encKey + ' #-----]'
+                    + '\n[-----# '+'这是发送给['+CryptoJS.SHA1(document.getElementById('linkman_pk').value.replace(/\n*/g, ""))+']的消息 #-----]';
             }
         } else {
             document.getElementById("encrypted").innerHTML = "请输入内容";
         }
     }
     function decryptMessage() {
-        let encrypted = document.getElementById("input-encrypted").value;
+        let encrypted = document.getElementById("input-encrypted").value.replace(/\n*/g, "");
         if (encrypted.length > 0 && private_key.length > 0) {
             jsEncrypt.setPublicKey(private_key);
-            // 识别「-----# #-----」中的内容
+            // 识别[-----# #-----]中的内容
             let inputArr = encrypted.split("#");
             let inputArrLength = inputArr.length;
             let encryptedMessage = ''
             let encKey = ''
-            if (inputArrLength >= 3) {
-                // 判断「-----# #-----」符号是否被篡改
+            if (inputArrLength >= 5) {
+                // brd5n1f2hSzmK3Bo0bfI+AA==[-----# gdLk2A== #-----][-----# 这是发送给[4115fd63e7f05a890e7a247e968486f3d070dc8e]的消息 #-----]
+                // 判断[-----# #-----]符号是否被篡改
                 if (
-                    inputArr[inputArrLength - 1].slice(0, 5) == "-----" &&
-                    inputArr[inputArrLength - 3].slice(inputArr[inputArrLength - 3].length - 5, inputArr[inputArrLength - 3].length) == "-----"
+                    inputArr[inputArrLength - 1].slice(0, 6) == "-----]" && inputArr[inputArrLength - 3] == "-----][-----" &&
+                    inputArr[inputArrLength - 5].slice(inputArr[inputArrLength - 5].length - 6, inputArr[inputArrLength - 5].length) == "[-----"
                 ) {
-                    encryptedMessage = inputArr[0].slice(0, inputArr[0].length-172-7);
-                    encKey = inputArr[0].slice(inputArr[0].length-172-7,inputArr[0].length-6);
+                    encryptedMessage = inputArr[0].slice(0, inputArr[0].length-7);
+                    encKey = inputArr[1];
                     let aesKey = jsEncrypt.decrypt(encKey);
                     if (aesKey == false) {
                         document.getElementById('decrypted').innerHTML = '解密失败，请检查私钥是否正确';
