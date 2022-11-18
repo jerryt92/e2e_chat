@@ -26,7 +26,7 @@
         </div>
         <div id="main-div" style="display: none">
             <span style="color: #333333;font-size: small;">我的哈希值：<strong id="my-hash" style="color: dodgerblue"></strong></span>
-            &nbsp;<button onclick="copyMyPublicKey(this)">复制我的公钥</button>
+            &nbsp;<button onclick="copyMyPublicKey(this)" onmouseout="this.innerHTML='复制我的公钥'">复制我的公钥</button>
             <hr/>
             <p><span>请将对方的公钥粘贴在此：</span></p>
             <textarea
@@ -59,7 +59,7 @@
                     style="width: 100%; resize: none; margin: 0 auto"
             >请输入内容</textarea>
             <br/>
-            <button id="encrypted-btn" onclick="copy('encrypted-btn','encrypted')">一键复制</button>
+            <button id="encrypted-btn" onclick="copy('encrypted-btn','encrypted')" onmouseout="this.innerHTML='一键复制'">一键复制</button>
             <hr/>
             <p><span>请将需要解密的信息粘贴在此：</span></p>
             <textarea
@@ -79,7 +79,7 @@
                     style="width: 100%; resize: none; margin: 0 auto" onkeyup=""
             >请输入待解密的内容</textarea>
             <br/>
-            <button id="encrypted-btn2" onclick="copy('encrypted-btn2','decrypted')">一键复制</button>
+            <button id="encrypted-btn2" onclick="copy('encrypted-btn2','decrypted')" onmouseout="this.innerHTML='一键复制'">一键复制</button>
             <hr/>
         </div>
         <p><a href="./my.html"><span>配置页面</span></a></p>
@@ -231,7 +231,7 @@
                         if (message) {
                             document.getElementById('decrypted').innerHTML = message;
                         } else {
-                            document.getElementById('decrypted').innerHTML = message;
+                            document.getElementById('decrypted').innerHTML = "解密失败";
                         }
                     }
                 } else {
