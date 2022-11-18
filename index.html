@@ -228,7 +228,11 @@
                         document.getElementById('decrypted').innerHTML = '解密失败，请检查私钥是否正确';
                     } else {
                         let message = aesDecryptBase64(aesKey, encryptedMessage);
-                        document.getElementById('decrypted').innerHTML = message;
+                        if (message) {
+                            document.getElementById('decrypted').innerHTML = message;
+                        } else {
+                            document.getElementById('decrypted').innerHTML = message;
+                        }
                     }
                 } else {
                     document.getElementById('decrypted').innerHTML = "解密失败";
