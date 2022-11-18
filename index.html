@@ -199,7 +199,7 @@
                 let encrypted = aesEncryptBase64(aesKey, message);
                 document.getElementById("encrypted").innerHTML = encrypted
                     + '\n[-----# ' + encKey + ' #-----]'
-                    + '\n[-----# '+'这是发送给['+CryptoJS.SHA1(document.getElementById('linkman_pk').value.replace(/\n*/g, ""))+']的消息 #-----]';
+                    + '\n[-----# '+'这是发送给【'+CryptoJS.SHA1(document.getElementById('linkman_pk').value.replace(/\n*/g, ""))+'】的消息 #-----]';
             }
         } else {
             document.getElementById("encrypted").innerHTML = "请输入内容";
@@ -215,7 +215,6 @@
             let encryptedMessage = ''
             let encKey = ''
             if (inputArrLength >= 5) {
-                // brd5n1f2hSzmK3Bo0bfI+AA==[-----# gdLk2A== #-----][-----# 这是发送给[4115fd63e7f05a890e7a247e968486f3d070dc8e]的消息 #-----]
                 // 判断[-----# #-----]符号是否被篡改
                 if (
                     inputArr[inputArrLength - 1].slice(0, 6) == "-----]" && inputArr[inputArrLength - 3] == "-----][-----" &&
