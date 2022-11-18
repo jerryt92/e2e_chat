@@ -224,8 +224,8 @@
                     encryptedMessage = inputArr[0].slice(0, inputArr[0].length-7);
                     encKey = inputArr[1];
                     let aesKey = jsEncrypt.decrypt(encKey);
-                    if (aesKey == false) {
-                        document.getElementById('decrypted').innerHTML = '解密失败，请检查私钥是否正确';
+                    if (!aesKey) {
+                        document.getElementById('decrypted').innerHTML = '解密失败';
                     } else {
                         let message = aesDecryptBase64(aesKey, encryptedMessage);
                         if (message) {
