@@ -197,8 +197,6 @@
                 document.getElementById("encrypted").innerHTML = '加密失败，请检查公钥是否正确';
             } else {
                 let encrypted = aesEncryptBase64(aesKey, message);
-                console.log(encKey)
-                console.log(encrypted)
                 document.getElementById("encrypted").innerHTML = encrypted
                     + '\n[-----# ' + encKey + ' #-----]'
                     + '\n[-----# '+'这是发送给['+CryptoJS.SHA1(document.getElementById('linkman_pk').value.replace(/\n*/g, ""))+']的消息 #-----]';
