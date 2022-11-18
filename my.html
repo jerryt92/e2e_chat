@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <meta name="apple-touch-fullscreen" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <link
+            href="https://fonts.loli.net/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext"
+            rel="stylesheet"
+            type="text/css"
+    />
+    <link href="./css/style.css" rel="stylesheet" type="text/css"/>
+    <title>端到端聊天工具 - 配置页面</title>
+</head>
+<body class="typora-export">
+<div class="typora-export-content">
+    <div id="write" class="">
+        <h1><span>端到端聊天工具 - 配置页面</span><span>&nbsp;</span><span style="color: #6E6E73;font-size: small;">版本：1.0</span></h1>
+        <strong>
+            欢迎使用端到端聊天工具，请您先设置下您的信息然后保存。
+            <br/>您的信息完全保存在本地浏览器的「Local Storage」中，不会上传到任何云端服务器。
+            <br/>您还可以为您的配置信息设置密码，以实现加密存储。
+        </strong>
+        <hr/>
+        <div id="unlock-div" style="display: none">
+            <p><span style="color: red">发现本地存有加密配置数据，请输入密码以解锁</span></span></p>
+            <input id="input-password" class="md-fences md-end-block ty-contain-cm modeLoaded" type="password"/>
+            <button onclick="unlock()">解锁</button>
+            <hr/>
+        </div>
+        <p><span>我的RSA私钥</span><span style="color: #6E6E73;font-size: small;">（可自行填入PKCS格式的RSA私钥，也可在此自动生成，请勿泄漏您的私钥！必填）</span></p>
+        <textarea id="private_key" onkeyup="checkRsa()" class="md-fences md-end-block ty-contain-cm modeLoaded" rows="6" style="width: 100%; resize: none; margin: 0 auto"></textarea>
+        <p><span>我的RSA公钥</span><span style="color: #6E6E73;font-size: small;">（可自行填入PKCS格式的RSA公钥，也可在此自动生成，必填）</span></p>
+        <textarea id="public_key" onkeyup="checkRsa()" class="md-fences md-end-block ty-contain-cm modeLoaded" rows="6" style="width: 100%; resize: none; margin: 0 auto"></textarea>
+        <br/>
+        <button id="ken-gen-btn" onclick="generateKey()">生成密钥</button>
+        密钥对合法性检查：<strong><span id="rsa_state" style="color: gray">空</span></strong>
+        <p><span>是否加密存储</span><span style="color: #6E6E73;font-size: small;">（对方可通过此信息识别你，非必填）</span>是<input id="enc-yes" type="radio" name="enc" value="yes" onchange="encStorage()"> 否<input checked="checked" type="radio" name="enc" value="no" onchange="encStorage()"></p>
+        <div id="enc-div" style="display: none">
+            <p><span>密码</span><span style="color: #6E6E73;font-size: small;">（如遗忘，则配置无法恢复）</span></p>
+            <input id="password" class="md-fences md-end-block ty-contain-cm modeLoaded" type="password"/>
+        </div>
+        <button onclick="save()">保存配置</button>
+        <button onclick="cleanAll()">清除配置</button>
+        <br/>
+        <hr/>
+        <p><button onclick="exportToFile()">导出配置文件（建议加密后再进行此操作）</button></p>
+        <p><input id="file" type="file" onchange="importToFile()" style="display:none"/></p>
+        <p><button onclick="importToFile()">导入配置文件</button></p>
+        <hr/>
+        <a href="./"><span>返回主页</span></a>
+    </div>
+</div>
+<script src="./js/encrypt_lib/jsencrypt.min.js"></script>
+<script src="./js/crypto-js.min.js"></script>
+<script src="./js/clipboard.js"></script>
+<script src="./js/aes.js"></script>
+<script>
+    var jsEncrypt = new JSEncrypt();
+
+    var localStorage_isenc = window.localStorage.getItem('isenc');
+    var localStorage_rkey = window.localStorage.getItem('rkey');
+    var localStorage_private_key = window.localStorage.getItem('private_key');
+    var localStorage_public_key = window.localStorage.getItem('public_key');
+    var localStorage_sha256_sum = window.localStorage.getItem('sha256_sum');
+    if (!localStorage_isenc||!localStorage_rkey||!localStorage_private_key||!localStorage_public_key||!localStorage_sha256_sum) {
+        window.localStorage.clear();
+    } else if (localStorage_isenc == 'no') {
+        try {
+            localStorage_private_key = aesDecryptBase64(atob(localStorage_rkey), localStorage_private_key)
+            localStorage_public_key = aesDecryptBase64(atob(localStorage_rkey), localStorage_public_key)
+            localStorage_sha256_sum = aesDecryptBase64(atob(localStorage_rkey), localStorage_sha256_sum)
+            if (localStorage_sha256_sum=="" + CryptoJS.SHA256(localStorage_private_key+localStorage_public_key)) {
+                document.getElementById('private_key').value = localStorage_private_key;
+                document.getElementById('public_key').value = localStorage_public_key;
+                checkRsa()
+            } else {
+                alert("本地数据遭到篡改，已自动清除！")
+                window.localStorage.clear();
+                window.location.reload();
+            }
+        } catch (e) {
+            alert("本地数据遭到篡改，已自动清除！")
+            window.localStorage.clear();
+            window.location.reload();
+        }
+    } else if (localStorage_isenc == 'yes') {
+        document.getElementById('unlock-div').style.display = 'block';
+    } else {
+        alert("本地数据遭到篡改，已自动清除！")
+        window.localStorage.clear();
+        window.location.reload();
+    }
+
+    function generateKey() {
+        var btn = document.getElementById('ken-gen-btn')
+        if (btn) {
+            btn.stopPropatation = true;
+            btn.cancelBubble = true;
+        }
+        let keySize = parseInt(1024);
+        let crypt = new JSEncrypt({default_key_size: keySize});
+        if (btn) btn.innerText = '正在生成...';
+        new Promise(function (resolve) {
+            setTimeout(function () {
+                resolve([crypt.getPrivateKey(), crypt.getPublicKey()]);
+            }, 50);
+        }).then(function (e) {
+            document.getElementById('private_key').value = e[0];
+            document.getElementById('public_key').value = e[1];
+            if (btn) btn.innerText = '生成密钥';
+            checkRsa()
+        });
+    }
+
+    function checkRsa() {
+        var privateKey = document.getElementById('private_key').value;
+        var publicKey = document.getElementById('public_key').value;
+        if (privateKey.length != 0 && publicKey.length != 0) {
+            jsEncrypt.setPublicKey(publicKey);
+            var encrypt = jsEncrypt.encrypt("test");
+            jsEncrypt.setPrivateKey(privateKey);
+            if (jsEncrypt.decrypt(encrypt) == "test") {
+                document.getElementById("rsa_state").style.cssText = "color : green";
+                document.getElementById("rsa_state").innerHTML = "合法";
+                return true;
+            } else {
+                document.getElementById("rsa_state").style.cssText =
+                    "color : red";
+                document.getElementById("rsa_state").innerHTML =
+                    "不合法";
+                return false;
+            }
+        } else {
+            document.getElementById("rsa_state").style.cssText =
+                "color : gray";
+            document.getElementById("rsa_state").innerHTML =
+                "空";
+            return false;
+        }
+    }
+
+    function encStorage() {
+        var item = null;
+        var obj = document.getElementsByName("enc")
+        for (var i = 0; i < obj.length; i++) { //遍历Radio
+            if (obj[i].checked) {
+                item = obj[i].value;
+            }
+        }
+        if (item=='yes'){
+            document.getElementById('enc-div').style.display = 'block';
+        } else if (item=='no') {
+            document.getElementById('enc-div').style.display = 'none';
+        }
+    }
+
+    function save() {
+        if (!checkRsa()) {
+            alert("密钥对非法！");
+            return;
+        }
+        var item = null;
+        var obj = document.getElementsByName("enc")
+        for (var i = 0; i < obj.length; i++) { //遍历Radio
+            if (obj[i].checked) {
+                item = obj[i].value;
+            }
+        }
+        if (item=='yes' && !document.getElementById('password').value) {
+            alert("密码不能为空！");
+            return;
+        }
+        var private_key = document.getElementById('private_key').value;
+        var public_key = document.getElementById('public_key').value;
+        var sha256_sum = "" + CryptoJS.SHA256(private_key+public_key)
+        if (item=='no') {
+            var rkey = "" + CryptoJS.MD5(URL.createObjectURL(new Blob()));
+            window.localStorage.setItem('rkey', btoa(rkey));
+            window.localStorage.setItem('private_key', aesEncryptBase64(rkey, private_key))
+            window.localStorage.setItem('public_key', aesEncryptBase64(rkey, public_key))
+            window.localStorage.setItem('isenc', 'no')
+            window.localStorage.setItem('sha256_sum', aesEncryptBase64(rkey, sha256_sum))
+            alert("保存成功！")
+        } else if (item=='yes') {
+            var rkey = "" + CryptoJS.MD5(URL.createObjectURL(new Blob()));
+            window.localStorage.setItem('rkey', aesEncryptBase64(''+CryptoJS.MD5(document.getElementById('password').value), rkey));
+            window.localStorage.setItem('private_key', aesEncryptBase64(rkey, private_key))
+            window.localStorage.setItem('public_key', aesEncryptBase64(rkey, public_key))
+            window.localStorage.setItem('isenc', 'yes')
+            window.localStorage.setItem('sha256_sum', aesEncryptBase64(rkey, sha256_sum))
+            alert("保存成功！")
+        }
+    }
+    function unlock() {
+        localStorage_rkey = aesDecryptBase64(''+CryptoJS.MD5(document.getElementById('input-password').value), localStorage_rkey)
+        if (!localStorage_rkey) {
+            alert('密码错误！');
+            window.location.reload();
+            return;
+        }
+        try {
+            localStorage_private_key = aesDecryptBase64(localStorage_rkey, localStorage_private_key)
+            localStorage_public_key = aesDecryptBase64(localStorage_rkey, localStorage_public_key)
+            localStorage_sha256_sum = aesDecryptBase64(localStorage_rkey, localStorage_sha256_sum)
+            if (localStorage_sha256_sum=="" + CryptoJS.SHA256(localStorage_private_key+localStorage_public_key)) {
+                document.getElementById('unlock-div').style.display = 'none';
+                document.getElementById('private_key').value = localStorage_private_key;
+                document.getElementById('public_key').value = localStorage_public_key;
+                document.getElementById('enc-yes').setAttribute('checked','checked');
+                document.getElementById('password').value = document.getElementById('input-password').value;
+                document.getElementById('enc-div').style.display = 'block';
+                checkRsa()
+            } else {
+                alert("本地数据遭到篡改，已自动清除！")
+                window.localStorage.clear();
+                window.location.reload();
+            }
+        } catch (e) {
+            alert("本地数据遭到篡改，已自动清除！")
+            window.localStorage.clear();
+            window.location.reload();
+        }
+    }
+    function cleanAll() {
+        var r=confirm("确定要清除本地存储的配置吗？");
+        if (r==true)
+        {
+            window.localStorage.clear();
+            alert("清除成功！");
+            window.location.reload();
+        }
+    }
+    function exportToFile() {
+        // 保存
+        if (!checkRsa()) {
+            alert("密钥对非法！");
+            return;
+        }
+        var item = null;
+        var obj = document.getElementsByName("enc")
+        for (var i = 0; i < obj.length; i++) { //遍历Radio
+            if (obj[i].checked) {
+                item = obj[i].value;
+            }
+        }
+        if (item=='yes' && !document.getElementById('password').value) {
+            alert("密码不能为空！");
+            return;
+        }
+        var private_key = document.getElementById('private_key').value;
+        var public_key = document.getElementById('public_key').value;
+        var sha256_sum = "" + CryptoJS.SHA256(private_key+public_key)
+        if (item=='no') {
+            var rkey = "" + CryptoJS.MD5(URL.createObjectURL(new Blob()));
+            window.localStorage.setItem('rkey', btoa(rkey));
+            window.localStorage.setItem('private_key', aesEncryptBase64(rkey, private_key))
+            window.localStorage.setItem('public_key', aesEncryptBase64(rkey, public_key))
+            window.localStorage.setItem('isenc', 'no')
+            window.localStorage.setItem('sha256_sum', aesEncryptBase64(rkey, sha256_sum))
+        } else if (item=='yes') {
+            var rkey = "" + CryptoJS.MD5(URL.createObjectURL(new Blob()));
+            window.localStorage.setItem('rkey', aesEncryptBase64(''+CryptoJS.MD5(document.getElementById('password').value), rkey));
+            window.localStorage.setItem('private_key', aesEncryptBase64(rkey, private_key))
+            window.localStorage.setItem('public_key', aesEncryptBase64(rkey, public_key))
+            window.localStorage.setItem('isenc', 'yes')
+            window.localStorage.setItem('sha256_sum', aesEncryptBase64(rkey, sha256_sum))
+        }
+
+        var data = {
+            'isenc':window.localStorage.getItem('isenc'),
+            'public_key':window.localStorage.getItem('public_key'),
+            'private_key':window.localStorage.getItem('private_key'),
+            'rkey':window.localStorage.getItem('rkey'),
+            'sha256_sum':window.localStorage.getItem('sha256_sum')
+        }
+        const a = document.createElement("a");
+        const url = window.URL.createObjectURL(new Blob([JSON.stringify(data)]));
+        a.href = url;
+        a.download = 'my.json';
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+    function importToFile() {
+        var fileList = document.getElementById('file').files;
+        if (!fileList.length) {
+            document.getElementById("file").click();
+        }
+        var file = fileList[0];
+        var reader = new FileReader();
+        reader.readAsText(file , 'utf-8');
+        reader.onload = function (e) {
+            let readerres = reader.result;
+            console.log(readerres);
+            let parseObj = JSON.parse(readerres);
+            window.localStorage.setItem('isenc',parseObj['isenc'])
+            window.localStorage.setItem('public_key',parseObj['public_key'])
+            window.localStorage.setItem('private_key',parseObj['private_key'])
+            window.localStorage.setItem('rkey',parseObj['rkey'])
+            window.localStorage.setItem('sha256_sum',parseObj['sha256_sum'])
+            alert('导入成功。')
+            window.location.reload();
+        }
+    }
+</script>
+</body>
+</html>

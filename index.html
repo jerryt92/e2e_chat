@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <meta name="apple-touch-fullscreen" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <link
+            href="https://fonts.loli.net/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext"
+            rel="stylesheet"
+            type="text/css"
+    />
+    <link href="./css/style.css" rel="stylesheet" type="text/css"/>
+    <title>端到端加密聊天工具</title>
+</head>
+<body class="typora-export">
+<div class="typora-export-content">
+    <div id="write" class="">
+        <h1><span>端到端加密聊天工具</span><span>&nbsp;</span><span style="color: #6E6E73;font-size: small;">版本：1.0</span></h1>
+        <hr/>
+        <div id="unlock-div" style="display: none">
+            <p><span style="color: red">发现本地存有加密配置数据，请输入密码以解锁</span></span></p>
+            <input id="input-password" class="md-fences md-end-block ty-contain-cm modeLoaded" type="password"/>
+            <button onclick="unlock()">解锁</button>
+            <hr/>
+        </div>
+        <div id="main-div" style="display: none">
+            <span style="color: #333333;font-size: small;">我的哈希值：<strong id="my-hash" style="color: dodgerblue"></strong></span>
+            &nbsp;<button onclick="copyMyPublicKey(this)">复制我的公钥</button>
+            <hr/>
+            <p><span>请将对方的公钥粘贴在此：</span></p>
+            <textarea
+                    id="linkman_pk"
+                    class="md-fences md-end-block ty-contain-cm modeLoaded"
+                    rows="6"
+                    style="width: 100%; resize: none; margin: 0 auto"
+                    onkeyup="savaLinkman();getLinkmanHash()"
+            ></textarea>
+            <br/>
+            <button onclick="pasteLinkmanPk()">粘贴</button>
+            <input id="save-linkman" type="checkbox" onchange="savaLinkman()">保存此联系人
+            <br/>
+            <span style="color: #333333;font-size: small;">对方哈希值：<strong id="linkman-hash" style="color: gray">空</strong></span>
+            <p><span>请将需要发送的信息粘贴在此：</span></p>
+            <textarea
+                    id="message"
+                    class="md-fences md-end-block ty-contain-cm modeLoaded"
+                    rows="6"
+                    style="width: 100%; resize: none; margin: 0 auto"
+                    onkeyup="encryptMessage()"
+            ></textarea>
+            <br/>
+            <button onclick="pasteMessage()">粘贴</button>
+            <p><span>加密后：</span></p>
+            <textarea
+                    id="encrypted"
+                    class="md-fences md-end-block ty-contain-cm modeLoaded"
+                    rows="6"
+                    style="width: 100%; resize: none; margin: 0 auto"
+            >请输入内容</textarea>
+            <br/>
+            <button id="encrypted-btn" onclick="copy('encrypted-btn','encrypted')">一键复制</button>
+            <hr/>
+            <p><span>请将需要解密的信息粘贴在此：</span></p>
+            <textarea
+                    id="input-encrypted"
+                    class="md-fences md-end-block ty-contain-cm modeLoaded"
+                    rows="6"
+                    style="width: 100%; resize: none; margin: 0 auto"
+                    onkeyup="decryptMessage()"
+            ></textarea>
+            <br/>
+            <button onclick="pasteInputEncrypted()">粘贴</button>
+            <p><span>解密后：</span></p>
+            <textarea
+                    id="decrypted"
+                    class="md-fences md-end-block ty-contain-cm modeLoaded"
+                    rows="6"
+                    style="width: 100%; resize: none; margin: 0 auto" onkeyup=""
+            >请输入待解密的内容</textarea>
+            <br/>
+            <button id="encrypted-btn2" onclick="copy('encrypted-btn2','decrypted')">一键复制</button>
+            <hr/>
+        </div>
+        <p><a href="./my.html"><span>配置页面</span></a></p>
+        <p><a href="https://jerryt92.github.io"><span>作者主页</span></a></p>
+    </div>
+</div>
+<script src="./js/encrypt_lib/jsencrypt.min.js"></script>
+<script src="./js/crypto-js.min.js"></script>
+<script src="./js/clipboard.js"></script>
+<script src="./js/aes.js"></script>
+<script>
+    var jsEncrypt = new JSEncrypt();
+    var private_key;
+    var public_key;
+    var localStorage_isenc = window.localStorage.getItem('isenc');
+    var localStorage_rkey = window.localStorage.getItem('rkey');
+    var localStorage_private_key = window.localStorage.getItem('private_key');
+    var localStorage_public_key = window.localStorage.getItem('public_key');
+    var localStorage_sha256_sum = window.localStorage.getItem('sha256_sum');
+    if (!localStorage_isenc||!localStorage_rkey||!localStorage_private_key||!localStorage_public_key||!localStorage_sha256_sum) {
+        window.localStorage.clear();
+        alert('请先进行配置！');
+        window.location.href = './my.html';
+    } else if (localStorage_isenc == 'no') {
+        try {
+            localStorage_private_key = aesDecryptBase64(atob(localStorage_rkey), localStorage_private_key)
+            localStorage_public_key = aesDecryptBase64(atob(localStorage_rkey), localStorage_public_key)
+            localStorage_sha256_sum = aesDecryptBase64(atob(localStorage_rkey), localStorage_sha256_sum)
+            if (localStorage_sha256_sum=="" + CryptoJS.SHA256(localStorage_private_key+localStorage_public_key)) {
+                document.getElementById('main-div').style.display = 'block';
+                private_key = localStorage_private_key;
+                public_key = localStorage_public_key;
+                document.getElementById('my-hash').innerHTML = ''+CryptoJS.SHA256(public_key.replace(/\n*/g, ""));
+            } else {
+                alert("本地数据遭到篡改，已自动清除！")
+                window.localStorage.clear();
+                window.location.reload();
+            }
+        } catch (e) {
+            alert("本地数据遭到篡改，已自动清除！")
+            window.localStorage.clear();
+            window.location.reload();
+        }
+    } else if (localStorage_isenc == 'yes') {
+        document.getElementById('unlock-div').style.display = 'block';
+    } else {
+        alert("本地数据遭到篡改，已自动清除！")
+        window.localStorage.clear();
+        window.location.reload();
+    }
+
+    var linkman_pk = window.localStorage.getItem('linkman');
+    if (linkman_pk) {
+        document.getElementById('linkman_pk').value = linkman_pk;
+        document.getElementById('save-linkman').checked = true;
+        getLinkmanHash();
+    }
+
+    function savaLinkman() {
+        if(document.getElementById('save-linkman').checked) {
+            window.localStorage.setItem('linkman',document.getElementById('linkman_pk').value);
+        } else {
+            window.localStorage.removeItem('linkman');
+        }
+    }
+
+    function getLinkmanHash() {
+        var lpk = document.getElementById('linkman_pk').value.replace(/\n*/g, "");
+        if (lpk) {
+            document.getElementById('linkman-hash').innerHTML = ''+CryptoJS.SHA256(lpk)
+            document.getElementById('linkman-hash').style.color = 'dodgerblue'
+        } else {
+            document.getElementById('linkman-hash').innerHTML = '空'
+            document.getElementById('linkman-hash').style.color = 'gray'
+        }
+    }
+
+    function unlock() {
+        localStorage_rkey = aesDecryptBase64(''+CryptoJS.MD5(document.getElementById('input-password').value), localStorage_rkey)
+        if (!localStorage_rkey) {
+            alert('密码错误！');
+            window.location.reload();
+            return;
+        }
+        try {
+            localStorage_private_key = aesDecryptBase64(localStorage_rkey, localStorage_private_key)
+            localStorage_public_key = aesDecryptBase64(localStorage_rkey, localStorage_public_key)
+            localStorage_sha256_sum = aesDecryptBase64(localStorage_rkey, localStorage_sha256_sum)
+            if (localStorage_sha256_sum=="" + CryptoJS.SHA256(localStorage_private_key+localStorage_public_key)) {
+                document.getElementById('unlock-div').style.display = 'none';
+                document.getElementById('main-div').style.display = 'block';
+                private_key = localStorage_private_key;
+                public_key = localStorage_public_key;
+                document.getElementById('my-hash').innerHTML = ''+CryptoJS.SHA256(public_key.replace(/\n*/g, ""));
+            } else {
+                alert("本地数据遭到篡改，已自动清除！")
+                window.localStorage.clear();
+                window.location.reload();
+            }
+        } catch (e) {
+            console.log(e)
+            alert("本地数据遭到篡改，已自动清除！")
+            window.localStorage.clear();
+            window.location.reload();
+        }
+    }
+    function encryptMessage() {
+        let publicKey = document.getElementById("linkman_pk").value;
+        let message = document.getElementById("message").value;
+        let aesKey = ''+CryptoJS.MD5(URL.createObjectURL(new Blob()));
+        if (message.length > 0 && publicKey.length > 0) {
+            jsEncrypt.setPublicKey(publicKey);
+            let encKey = jsEncrypt.encrypt(aesKey);
+            if (encKey == false) {
+                document.getElementById("encrypted").innerHTML = '加密失败，请检查公钥是否正确';
+            } else {
+                let encrypted = aesEncryptBase64(aesKey, message);
+                document.getElementById("encrypted").innerHTML = encrypted + encKey + '\n「-----# '+'这是发送给['+CryptoJS.SHA256(document.getElementById('linkman_pk').value.replace(/\n*/g, ""))+']的消息 #-----」';
+            }
+        } else {
+            document.getElementById("encrypted").innerHTML = "请输入内容";
+        }
+    }
+    function decryptMessage() {
+        let encrypted = document.getElementById("input-encrypted").value;
+        if (encrypted.length > 0 && private_key.length > 0) {
+            jsEncrypt.setPublicKey(private_key);
+            // 识别「-----# #-----」中的内容
+            let inputArr = encrypted.split("#");
+            let inputArrLength = inputArr.length;
+            let encryptedMessage = ''
+            let encKey = ''
+            if (inputArrLength >= 3) {
+                // 判断「-----# #-----」符号是否被篡改
+                if (
+                    inputArr[inputArrLength - 1].slice(0, 5) == "-----" &&
+                    inputArr[inputArrLength - 3].slice(inputArr[inputArrLength - 3].length - 5, inputArr[inputArrLength - 3].length) == "-----"
+                ) {
+                    encryptedMessage = inputArr[0].slice(0, inputArr[0].length-172-7);
+                    encKey = inputArr[0].slice(inputArr[0].length-172-7,inputArr[0].length-6);
+                    let aesKey = jsEncrypt.decrypt(encKey);
+                    if (aesKey == false) {
+                        document.getElementById('decrypted').innerHTML = '解密失败，请检查私钥是否正确';
+                    } else {
+                        let message = aesDecryptBase64(aesKey, encryptedMessage);
+                        document.getElementById('decrypted').innerHTML = message;
+                    }
+                } else {
+                    document.getElementById('decrypted').innerHTML = "解密失败";
+                }
+            } else {
+                document.getElementById('decrypted').innerHTML = "解密失败";
+            }
+        } else {
+            document.getElementById('decrypted').innerHTML = "请输入待解密的内容";
+        }
+    }
+    function copyMyPublicKey(btn) {
+        navigator.clipboard.writeText(public_key)
+            .then(
+                function () {
+                    alert('你的公钥以复制成功，请发送给对方，并在核对好哈希值后方可进行加密聊天。')
+                    btn.innerHTML = '已复制';
+                }, function (e) {
+                    console.log('复制失败');
+                    console.log(e);
+                    alert(e);
+                });
+    }
+    function copy(btn_id, value_id) {
+        navigator.clipboard.writeText(document.getElementById(value_id).value)
+            .then(
+                function () {
+                    document.getElementById(btn_id).innerHTML = '已复制';
+                }, function (e) {
+                    console.log('复制失败');
+                    console.log(e);
+                    alert(e);
+                });
+    }
+    function pasteLinkmanPk() {
+        navigator.clipboard.readText().then((text) => {
+            document.getElementById('linkman_pk').value = text;
+            savaLinkman();
+            getLinkmanHash()
+        });
+    }
+    function pasteMessage() {
+        navigator.clipboard.readText().then((text) => {
+            document.getElementById('message').value = text;
+            encryptMessage();
+        });
+    }
+    function pasteInputEncrypted() {
+        navigator.clipboard.readText().then((text) => {
+            document.getElementById('input-encrypted').value = text;
+            decryptMessage()
+        });
+    }
+</script>
+</body>
+</html>
