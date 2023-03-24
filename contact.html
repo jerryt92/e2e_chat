@@ -11,38 +11,61 @@
             type="text/css"
     />
     <link href="./css/style.css" rel="stylesheet" type="text/css"/>
-    <title>端到端加密聊天工具 - 配置页面</title>
+    <title>端到端加密聊天工具 - 通讯录</title>
 </head>
 <body class="typora-export">
 <div class="typora-export-content">
     <div id="write" class="">
-        <h1><span>端到端加密聊天工具 - 配置页面</span><span>&nbsp;</span><span style="color: #6E6E73;font-size: small;">版本：1.0</span></h1>
+        <h1><span>端到端加密聊天工具 - 通讯录</span><span>&nbsp;</span><span style="color: #6E6E73;font-size: small;">版本：1.0</span></h1>
         <strong>
-            欢迎使用端到端加密聊天工具，请您先设置下您的信息然后保存。
-            <br/>您的信息完全保存在本地浏览器的「Local Storage」中，不会上传到任何云端服务器。
-            <br/>您还可以为您的配置信息设置密码，以实现加密存储。
+            在这里可以管理您的联系人，联系人信息完全保存在本地浏览器的「Local Storage」中，不会上传到任何云端服务器。
         </strong>
         <hr/>
-        <div id="unlock-div" style="display: none">
-            <p><span style="color: red">发现本地存有加密配置数据，请输入密码以解锁</span></span></p>
-            <input id="input-password" class="md-fences md-end-block ty-contain-cm modeLoaded" type="password"/>
-            <button onclick="unlock()">解锁</button>
-            <hr/>
-        </div>
-        <p><span>我的RSA私钥</span><span style="color: #6E6E73;font-size: small;">（可自行填入PKCS格式的RSA私钥，也可在此自动生成，请勿泄漏您的私钥！必填）</span></p>
-        <textarea id="private_key" onkeyup="checkRsa()" class="md-fences md-end-block ty-contain-cm modeLoaded" rows="6" style="width: 100%; resize: none; margin: 0 auto"></textarea>
-        <p><span>我的RSA公钥</span><span style="color: #6E6E73;font-size: small;">（可自行填入PKCS格式的RSA公钥，也可在此自动生成，必填）</span></p>
-        <textarea id="public_key" onkeyup="checkRsa()" class="md-fences md-end-block ty-contain-cm modeLoaded" rows="6" style="width: 100%; resize: none; margin: 0 auto"></textarea>
+        <p><span>备注名</span></span></p>
+        <input id="input-password" class="md-fences md-end-block ty-contain-cm modeLoaded" type="password"/>
+        <p><span>请将对方的公钥粘贴在此：</span></p>
+        <textarea
+                id="linkman_pk"
+                class="md-fences md-end-block ty-contain-cm modeLoaded"
+                rows="6"
+                style="width: 100%; resize: none; margin: 0 auto"
+                onkeyup="getLinkmanHash()"
+        ></textarea>
+        <div><span style="color: #333333;font-size: small;">对方哈希值：<strong id="linkman-hash" style="color: gray">空</strong></span></div>
         <br/>
-        <button id="ken-gen-btn" onclick="generateKey()">生成密钥</button>
-        密钥对合法性检查：<strong><span id="rsa_state" style="color: gray">空</span></strong>
-        <p><span>是否加密存储密钥</span><span style="color: #6E6E73;font-size: small;"></span>是<input id="enc-yes" type="radio" name="enc" value="yes" onchange="encStorage()"> 否<input checked="checked" type="radio" name="enc" value="no" onchange="encStorage()"></p>
-        <div id="enc-div" style="display: none">
-            <p><span>密码</span><span style="color: #6E6E73;font-size: small;">（如遗忘，则配置无法恢复）</span></p>
-            <input id="password" class="md-fences md-end-block ty-contain-cm modeLoaded" type="password"/>
-        </div>
+        <button onclick="pasteLinkmanPk()">粘贴</button>
         <button onclick="save()">保存配置</button>
-        <button onclick="cleanAll()">清除配置</button>
+        <hr/>
+        <strong>
+            你的联系人
+        </strong>
+        <div>
+            <table id="linkman-table">
+                <tr>
+                    <td>
+                        备注名
+                    </td>
+                    <td>
+                        哈希值
+                    </td>
+                    <td>
+                        操作
+                    </td>
+                </tr>
+                <tr id="xscsddcfsfvdfvdvdvdfvdfvdxscvfc">
+                    <td>
+                        Jerry
+                    </td>
+                    <td>
+                        xscsddcfsfvdfvdvdvdfvdfvdxscvfc
+                    </td>
+                    <td>
+                        <button style="color: orangered">删除</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <hr/>
         <p><a href="./"><span style="font-size: x-large">前往聊天页</span></a></p>
         <hr/>
         <p><button onclick="exportToFile()">备份我的配置（建议加密后再进行此操作）</button></p>
@@ -56,7 +79,8 @@
 <script src="./js/aes.js"></script>
 <script>
     var jsEncrypt = new JSEncrypt();
-
+    var private_key;
+    var public_key;
     var localStorage_isenc = window.localStorage.getItem('isenc');
     var localStorage_rkey = window.localStorage.getItem('rkey');
     var localStorage_private_key = window.localStorage.getItem('private_key');
@@ -64,15 +88,16 @@
     var localStorage_sha256_sum = window.localStorage.getItem('sha256_sum');
     if (!localStorage_isenc||!localStorage_rkey||!localStorage_private_key||!localStorage_public_key||!localStorage_sha256_sum) {
         window.localStorage.clear();
+        alert('请先进行配置！');
+        window.location.href = './my.html';
     } else if (localStorage_isenc == 'no') {
         try {
             localStorage_private_key = aesDecryptBase64(atob(localStorage_rkey), localStorage_private_key)
             localStorage_public_key = aesDecryptBase64(atob(localStorage_rkey), localStorage_public_key)
             localStorage_sha256_sum = aesDecryptBase64(atob(localStorage_rkey), localStorage_sha256_sum)
             if (localStorage_sha256_sum=="" + CryptoJS.SHA256(localStorage_private_key+localStorage_public_key)) {
-                document.getElementById('private_key').value = localStorage_private_key;
-                document.getElementById('public_key').value = localStorage_public_key;
-                checkRsa()
+                private_key = localStorage_private_key;
+                public_key = localStorage_public_key;
             } else {
                 alert("本地数据遭到篡改，已自动清除！")
                 window.localStorage.clear();
@@ -90,26 +115,36 @@
         window.localStorage.clear();
         window.location.reload();
     }
-
-    function generateKey() {
-        var btn = document.getElementById('ken-gen-btn')
-        if (btn) {
-            btn.stopPropatation = true;
-            btn.cancelBubble = true;
+    // 将local storage中的联系人数据导入JSON，并自动移除不合法数据
+    var len = localStorage.length;  // 获取长度
+    console.log(len) // 输出5
+    var jsonStr = '{';
+    for(var i = 0; i < len; i++) {
+        // 排除配置数据
+        if (localStorage.key(i)!='isenc'&&localStorage.key(i)!='sha256_sum'&&localStorage.key(i)!='rkey'&&localStorage.key(i)!='public_key'&&localStorage.key(i)!='private_key') {
+            // 获取key 索引从0开始
+            var key = localStorage.key(i);
+            // 获取key对应的值
+            var value = localStorage.getItem(key);
+            // 放进数组
+            jsonStr += '\"'+key+'\"'+':'+'\"'+value+'\"'
+            if (i + 1 < len) {
+                jsonStr += ','
+            }
         }
-        let keySize = parseInt(1024);
-        let crypt = new JSEncrypt({default_key_size: keySize});
-        if (btn) btn.innerText = '正在生成...';
-        new Promise(function (resolve) {
-            setTimeout(function () {
-                resolve([crypt.getPrivateKey(), crypt.getPublicKey()]);
-            }, 50);
-        }).then(function (e) {
-            document.getElementById('private_key').value = e[0];
-            document.getElementById('public_key').value = e[1];
-            if (btn) btn.innerText = '生成密钥';
-            checkRsa()
-        });
+    }
+    jsonStr += '}';
+    var contactJson = JSON.parse(jsonStr);
+
+    function getLinkmanHash() {
+        var lpk = document.getElementById('linkman_pk').value.replace(/\n*/g, "");
+        if (lpk) {
+            document.getElementById('linkman-hash').innerHTML = ''+CryptoJS.SHA1(lpk)
+            document.getElementById('linkman-hash').style.color = 'dodgerblue'
+        } else {
+            document.getElementById('linkman-hash').innerHTML = '空'
+            document.getElementById('linkman-hash').style.color = 'gray'
+        }
     }
 
     function checkRsa() {
@@ -155,10 +190,6 @@
     }
 
     function save() {
-        if (!checkRsa()) {
-            alert("密钥对非法！");
-            return;
-        }
         var item = null;
         var obj = document.getElementsByName("enc")
         for (var i = 0; i < obj.length; i++) { //遍历Radio
