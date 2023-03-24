@@ -36,7 +36,7 @@
         <br/>
         <button id="ken-gen-btn" onclick="generateKey()">生成密钥</button>
         密钥对合法性检查：<strong><span id="rsa_state" style="color: gray">空</span></strong>
-        <p><span>是否加密存储密钥</span><span style="color: #6E6E73;font-size: small;"></span>是<input id="enc-yes" type="radio" name="enc" value="yes" onchange="encStorage()"> 否<input checked="checked" type="radio" name="enc" value="no" onchange="encStorage()"></p>
+        <p><span>是否加密存储密钥？ </span><span style="color: #6E6E73;font-size: small;"></span>是<input id="enc-yes" type="radio" name="enc" value="yes" onchange="encStorage()"> 否<input checked="checked" type="radio" name="enc" value="no" onchange="encStorage()"></p>
         <div id="enc-div" style="display: none">
             <p><span>密码</span><span style="color: #6E6E73;font-size: small;">（如遗忘，则配置无法恢复）</span></p>
             <input id="password" class="md-fences md-end-block ty-contain-cm modeLoaded" type="password"/>
